@@ -2,7 +2,7 @@
 #ifndef __HEAP_H
 #define __HEAP_H
 
-struct heap;
+typedef struct heap heap;
 
 struct heap *hpCreate(int (*compare)(void *lhs, void *rhs));
 void hpFree(struct heap *hp);
