@@ -47,6 +47,10 @@ void hpAdd(struct heap *hp, void *data)
 		unsigned pos = hp->count - 1;
 		bool cont = true;
 		while(cont) {
+			if(pos == 0) {
+				hp->heap[0] = data;
+				break;
+			}
 			if(hp->compare(data, hp->heap[pos / 2]) < 0) {
 				hp->heap[pos] = data;
 				cont = false;
@@ -73,6 +77,7 @@ void *hpTop(struct heap *hp)
 	hp->count--;
 	void *top = hp->heap[0];
 	hp->heap[0] = hp->heap[hp->count];
+	hp->heap[hp->count] = NULL;
 	unsigned pos = 1;
 	while(pos * 2 < hp->count &&
 				(hp->compare(hp->heap[pos - 1], hp->heap[pos * 2 - 1]) < 0 ||
