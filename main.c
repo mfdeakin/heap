@@ -119,5 +119,6 @@ void printmenu(void)
 	puts("'c'  to clear the heap,\n"
 			 "'d'  to delete the current string,\n"
 			 "'i'  to insert a new string into the heap (will need to prompt for string),\n"
+			 "'p'  to peek at the current string,\n"
 			 "'q'  to quit this program.\n");
 }

@@ -1,6 +1,6 @@
 
 CC=gcc
-CFLAGS=-g
+CFLAGS=-g -Wall
 
 heaptest: list.o heap.o main.c
 	$(CC) $(CFLAGS) -o heaptest list.o heap.o main.c
