@@ -1,4 +1,3 @@
-
 #include "heap.h"
 #include <stdlib.h>
 #include <stdbool.h>
@@ -79,11 +78,10 @@ void *hpTop(struct heap *hp)
 	hp->heap[0] = hp->heap[hp->count];
 	hp->heap[hp->count] = NULL;
 	unsigned pos = 1;
-	while(pos * 2 < hp->count &&
-				(hp->compare(hp->heap[pos - 1], hp->heap[pos * 2 - 1]) < 0 ||
-				 hp->compare(hp->heap[pos - 1], hp->heap[pos * 2]) < 0)) {
+	while((pos * 2 < hp->count && hp->compare(hp->heap[pos - 1], hp->heap[pos * 2]) < 0) ||
+	      (pos*2 - 1 < hp->count && hp->compare(hp->heap[pos - 1], hp->heap[pos * 2 - 1]) < 0) ) {
 		void *buffer;
-		if(hp->compare(hp->heap[pos * 2 - 1], hp->heap[pos * 2]) > 0) {
+		if(pos * 2 >= hp || hp->compare(hp->heap[pos * 2 - 1], hp->heap[pos * 2]) > 0) {
 			buffer = hp->heap[pos - 1];
 			hp->heap[pos - 1] = hp->heap[pos * 2 - 1];
 			hp->heap[pos * 2 - 1] = buffer;
