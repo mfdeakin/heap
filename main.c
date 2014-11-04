@@ -9,67 +9,105 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <ctype.h>
+#include <unistd.h>
 
 #include "heap.h"
 #include "list.h"
 
+typedef void (*CmdFunc)(heap *, bool);
+
 void printmenu(void);
 
-void cmdClear(heap *ops);
-void cmdDelete(heap *ops);
-void cmdInsert(heap *ops);
-void cmdPeek(heap *ops);
-void cmdQuit(heap *ops);
+void cmdClear(heap *ops, bool print);
+void cmdDelete(heap *ops, bool print);
+void cmdInsert(heap *ops, bool print);
+void cmdPeek(heap *ops, bool print);
+void cmdQuit(heap *ops, bool print);
+void cmdQuitNewline(heap *ops, bool print);
+
+int runCommands(heap *hp, bool print);
 
 int main(int argc, char **argv)
 {
 	heap *hp = hpCreate((int (*)(const void *, const void *))strcmp);
-	printmenu();
-	char cmd;
+	if (isatty(fileno(stdin))) {
+		return runCommands(hp, true);
+	}
+	else {
+		return runCommands(hp, false);
+	}
+}
+
+CmdFunc *createCmdMap()
+{
 	/* Because I am a lazy programmer and don't have 
 	 * a good map interface in C and like functional programming,
 	 * I'll just do this terrible thing */
-	void (*commands[1 << (sizeof(cmd) * 8)])(heap *);
+	CmdFunc *commands = malloc(sizeof(CmdFunc[256]));
 	memset(commands, 0, sizeof(commands));
 	commands['c'] = cmdClear;
 	commands['d'] = cmdDelete;
 	commands['i'] = cmdInsert;
 	commands['q'] = cmdQuit;
+	commands[0] = cmdQuitNewline;
 	commands['p'] = cmdPeek;
-	for(;;) {
-		char buf;
-		printf(">> ");
-		/* Read the command and skip to the end */
-		fread(&cmd, sizeof(cmd), 1, stdin);
-		do {
-			fread(&buf, sizeof(buf), 1, stdin);
-		} while(buf != '\n');
-		cmd = tolower(cmd);
-		if(commands[(int)cmd])
-			commands[(int)cmd](hp);
-	}
+	return commands;
 }
 
-void cmdClear(heap *ops)
+// Reads the next command from stdin.
+char readCmd()
+{
+	char buf = 0;
+	char cmd = 0;
+	/* Read the command and skip to the end */
+	size_t bytesRead = fread(&cmd, sizeof(cmd), 1, stdin);
+	if(bytesRead != 0) {
+		do {
+			bytesRead = fread(&buf, sizeof(buf), 1, stdin);
+		} while(buf != '\n' && bytesRead != 0);
+	}
+	else {
+		cmd = 0;
+	}
+	return tolower(cmd);
+}
+
+int runCommands(heap *hp, bool print)
+{
+	CmdFunc *commands = createCmdMap();
+	if(print)
+		printmenu();
+	for(int i = 0;; i++) {
+		if(print)
+			printf(">> ");
+		char cmd = readCmd();
+		if(commands[(int)cmd])
+			commands[(int)cmd](hp, print);
+	}
+	free(commands);
+}
+
+void cmdClear(heap *ops, bool print)
 {
 	while(hpSize(ops) > 0)
-		cmdDelete(ops);
+		cmdDelete(ops, print);
 }
 
-void cmdDelete(heap *ops)
+void cmdDelete(heap *ops, bool print)
 {
 	if(hpSize(ops) > 0) {
 		char *data = (char *)hpTop(ops);
 		printf("Top: %s\n", data);
 		free(data);
 	}
-	else {
+	else if(print) {
 		printf("Heap is already empty\n");
 	}
 }
 
-void cmdPeek(heap *ops)
+void cmdPeek(heap *ops, bool print)
 {
 	if(hpSize(ops) > 0) {
 		printf("Top: %s\n", (char *)hpPeek(ops));
@@ -79,9 +117,10 @@ void cmdPeek(heap *ops)
 	}
 }
 
-void cmdInsert(heap *ops)
+void cmdInsert(heap *ops, bool print)
 {
-	printf("String: ");
+	if(print)
+		printf("String: ");
 	char *buf = NULL;
 	list *strbuf = listCreate();
 	for(;;) {
@@ -107,9 +146,15 @@ void cmdInsert(heap *ops)
 	hpAdd(ops, buf);
 }
 
-void cmdQuit(heap *ops)
+void cmdQuitNewline(heap *ops, bool print)
 {
-	cmdClear(ops);
+	printf("\n");
+	cmdQuit(ops, print);
+}
+
+void cmdQuit(heap *ops, bool print)
+{
+	cmdClear(ops, print);
 	hpFree(ops);
 	exit(0);
 }
