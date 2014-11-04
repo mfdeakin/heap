@@ -3,15 +3,16 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <stdio.h>
 
 struct heap
 {
 	void **heap;
-	int (*compare)(void *, void *);
+	int (*compare)(const void *, const void *);
 	unsigned count, max;
 };
 
-struct heap *hpCreate(int (*compare)(void *, void *))
+struct heap *hpCreate(int (*compare)(const void *, const void *))
 {
 	struct heap *hp = malloc(sizeof(struct heap));
 	hp->compare = compare;
@@ -33,32 +34,22 @@ void hpAdd(struct heap *hp, void *data)
 	hp->count++;
 	if(hp->count >= hp->max) {
 		hp->max *= 2;
-		void **buffer = malloc(sizeof(void *[hp->max]));
-		unsigned i;
-		for(i = 0; i < hp->count - 1; i++)
-			buffer[i] = hp->heap[i];
-		free(hp->heap);
-		hp->heap = buffer;
+		hp->heap = realloc(hp->heap, sizeof(void *[hp->max]));
 	}
-	if(hp->count == 1) {
-		hp->heap[0] = data;
-	}
-	else {
-		unsigned pos = hp->count - 1;
-		bool cont = true;
-		while(cont) {
-			if(pos == 0) {
-				hp->heap[0] = data;
-				break;
-			}
-			if(hp->compare(data, hp->heap[pos / 2]) < 0) {
-				hp->heap[pos] = data;
-				cont = false;
-			}
-			else {
-				hp->heap[pos] = hp->heap[pos / 2];
-				pos /= 2;
-			}
+	unsigned pos = hp->count - 1;
+	bool cont = true;
+	while(cont) {
+		if(pos == 0) {
+			hp->heap[0] = data;
+			break;
+		}
+		if(hp->compare(data, hp->heap[(pos + 1) / 2 - 1]) < 0) {
+			hp->heap[pos] = data;
+			cont = false;
+		}
+		else {
+			hp->heap[pos] = hp->heap[(pos + 1) / 2 - 1];
+			pos = (pos + 1) / 2 - 1;
 		}
 	}
 }
@@ -78,25 +69,39 @@ void *hpTop(struct heap *hp)
 	void *top = hp->heap[0];
 	hp->heap[0] = hp->heap[hp->count];
 	hp->heap[hp->count] = NULL;
-	unsigned pos = 1;
-	while((pos * 2 < hp->count &&
-				 hp->compare(hp->heap[pos - 1], hp->heap[pos * 2]) < 0) ||
-	      (pos*2 - 1 < hp->count &&
-				 hp->compare(hp->heap[pos - 1], hp->heap[pos * 2 - 1]) < 0)) {
-		void *buffer;
-		if(pos * 2 >= hp->count ||
-			 hp->compare(hp->heap[pos * 2 - 1], hp->heap[pos * 2]) > 0) {
-			buffer = hp->heap[pos - 1];
-			hp->heap[pos - 1] = hp->heap[pos * 2 - 1];
-			hp->heap[pos * 2 - 1] = buffer;
-			pos = pos * 2 - 1;
+	unsigned pos = 0;
+	int lChild = pos * 2 + 1;
+	int rChild = lChild + 1;
+	while((lChild < hp->count &&
+				 hp->compare(hp->heap[pos], hp->heap[lChild]) < 0) ||
+	      (rChild < hp->count &&
+				 hp->compare(hp->heap[pos], hp->heap[rChild]) < 0)) {
+		// At least one of the children is greater than the node, so bring the one up
+		if(rChild < hp->count) {
+			if(hp->compare(hp->heap[lChild], hp->heap[rChild]) < 0) {
+				// The right child is the larger of the two nodes
+				void *buffer = hp->heap[rChild];
+				hp->heap[rChild] = hp->heap[pos];
+				hp->heap[pos] = buffer;
+				pos = rChild;
+			}
+			else {
+				// The left child is the larger of the two nodes
+				void *buffer = hp->heap[lChild];
+				hp->heap[lChild] = hp->heap[pos];
+				hp->heap[pos] = buffer;
+				pos = lChild;
+			}
 		}
 		else {
-			buffer = hp->heap[pos - 1];
-			hp->heap[pos - 1] = hp->heap[pos * 2];
-			hp->heap[pos * 2] = buffer;
-			pos = pos * 2;
+			// There can only be a left child, and it must be greater
+			void *buffer = hp->heap[lChild];
+			hp->heap[lChild] = hp->heap[pos];
+			hp->heap[pos] = buffer;
+			pos = lChild;
 		}
+		lChild = pos * 2 + 1;
+		rChild = lChild + 1;
 	}
 	return top;
 }

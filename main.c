@@ -24,7 +24,7 @@ void cmdQuit(heap *ops);
 
 int main(int argc, char **argv)
 {
-	heap *hp = hpCreate((int (*)(void *, void *))strcmp);
+	heap *hp = hpCreate((int (*)(const void *, const void *))strcmp);
 	printmenu();
 	char cmd;
 	/* Because I am a lazy programmer and don't have 
