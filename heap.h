@@ -43,7 +43,7 @@ void hpAdd(struct heap *hp, void *data);
  */
 void *hpPeek(struct heap *hp);
 
-/* hpPeek
+/* hpTop
  *
  * Preconditions: hp is a valid heap
  *
